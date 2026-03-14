@@ -221,9 +221,9 @@ public:
     {
       try
       {
+        // Use the latest available transform
         auto transform_stamped = tf_buffer_.lookupTransform(
-          header.frame_id, sl.name,
-          transform_time, rclcpp::Duration(std::chrono::milliseconds(100)));
+          header.frame_id, sl.name, tf2::TimePointZero);
         tf2::Quaternion q(
             transform_stamped.transform.rotation.x,
             transform_stamped.transform.rotation.y,
@@ -238,9 +238,17 @@ public:
         sl.body->setPose(tf2_transform * sl.constTransf);
         sl.unscaledBody->setPose(tf2_transform * sl.constTransf);
       }
+      catch(const tf2::TransformException &ex)
+      {
+        RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000,
+          "Transform lookup failed for body '%s': %s - keeping previous pose",
+          sl.name.c_str(), ex.what());
+      }
       catch(...)
       {
-        // keep old pose
+        RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000,
+          "Unknown error during transform lookup for body '%s', keeping previous pose",
+          sl.name.c_str());
       }
     }
     computeBoundingSpheres();
@@ -268,7 +276,7 @@ public:
       {
         auto transform_stamped = tf_buffer_.lookupTransform(
           header.frame_id, sensor_frame,
-          transform_time, rclcpp::Duration(std::chrono::milliseconds(100)));
+          transform_time, rclcpp::Duration(std::chrono::milliseconds(1000)));
         tf2::Vector3 t(
             transform_stamped.transform.translation.x,
             transform_stamped.transform.translation.y,
