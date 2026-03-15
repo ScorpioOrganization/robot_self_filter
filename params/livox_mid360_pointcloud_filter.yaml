@@ -30,6 +30,10 @@ livox_mid360_pointcloud_filter:
     default_cylinder_scale: [1.0, 1.0]
     default_cylinder_padding: [0.01, 0.01]
 
+    # For convex meshes (x,y,z scale & padding)
+    default_convex_scale: [1.0, 1.0, 1.0]
+    default_convex_padding: [0.00, 0.00, 0.00]
+
     # Filtering behavior
     keep_organized: false
     zero_for_removed_points: false
@@ -60,10 +64,19 @@ livox_mid360_pointcloud_filter:
         "mast_right_link",
         ]
 
+      mani_base_link:
+        convex_scale: [1.0, 1.0, 1.0]
+        convex_padding: [0.00, 0.00, 0.00]
+
       # Example custom overrides:
       # base_link:
       #   box_scale: [1.5, 1.5, 1.0]
       #   box_padding: [0.05, 0.05, 0.05]
+
+      # Example convex mesh override:
+      # gripper_finger_link:
+      #   convex_scale: [1.1, 1.1, 1.2]
+      #   convex_padding: [0.02, 0.02, 0.03]
 
       # Example custom overrides:
       # TELE:

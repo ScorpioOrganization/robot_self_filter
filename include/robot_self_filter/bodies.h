@@ -242,6 +242,23 @@ public:
   ConvexMesh(const shapes::Shape *shape);
   ~ConvexMesh() override = default;
 
+  void setScale(double sx, double sy, double sz)
+  {
+    m_scale[0] = sx;
+    m_scale[1] = sy;
+    m_scale[2] = sz;
+    updateInternalData();
+  }
+  void setPadding(double px, double py, double pz)
+  {
+    m_padding[0] = px;
+    m_padding[1] = py;
+    m_padding[2] = pz;
+    updateInternalData();
+  }
+  tf2::Vector3 getScale() const { return m_scale; }
+  tf2::Vector3 getPadding() const { return m_padding; }
+
   bool containsPoint(const tf2::Vector3 &p, bool verbose = false) const override;
   bool intersectsRay(const tf2::Vector3 &origin,
                      const tf2::Vector3 &dir,
@@ -265,6 +282,9 @@ protected:
   std::vector<tf2::Vector3>    m_scaledVertices;
   std::vector<unsigned int>    m_triangles;
   tf2::Transform               m_iPose;
+
+  tf2::Vector3 m_scale{1.0, 1.0, 1.0};
+  tf2::Vector3 m_padding{0.0, 0.0, 0.0};
 
   tf2::Vector3 m_center;
   tf2::Vector3 m_meshCenter;

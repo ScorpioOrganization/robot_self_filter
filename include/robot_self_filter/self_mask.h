@@ -47,6 +47,10 @@ struct LinkInfo
   // For cylinders
   std::vector<double> cylinder_scale;   // [rad_scale, vert_scale]
   std::vector<double> cylinder_padding; // [rad_pad,   vert_pad]
+
+  // For convex meshes
+  std::vector<double> convex_scale;   // [sx, sy, sz]
+  std::vector<double> convex_padding; // [px, py, pz]
 };
 
 static inline tf2::Transform urdfPose2TFTransform(const urdf::Pose &pose)
@@ -450,19 +454,26 @@ protected:
             }
             case shapes::MESH:
             {
-              // For a mesh, you might do uniform scale/padding
-              // but there's no single "setScale" in the base class.
-              // In the improved code we do it similarly to a sphere: single scale/padding
+              // For a mesh, apply custom scale/padding if provided
               auto mesh_body = dynamic_cast<bodies::ConvexMesh*>(sl.body);
-              // Possibly store your scale/padding if you want a custom approach
-              // For now, no direct function calls for multi-scale, so do uniform or skip
-              // You might implement your own approach. For demonstration:
-              // We'll ignore multi-dim box/cylinder arrays for the mesh
-              // because it's not natively supported.
-              // That means we'd do uniform scale/padding in `updateInternalData()`,
-              // if implemented in ConvexMesh.
-              // -> No direct calls needed here. 
-              // (Or you could design a custom method to do it.)
+              if (mesh_body)
+              {
+                if (linfo.convex_scale.size() == 3 && linfo.convex_padding.size() == 3)
+                {
+                  mesh_body->setScale(linfo.convex_scale[0],
+                      linfo.convex_scale[1],
+                      linfo.convex_scale[2]);
+                  mesh_body->setPadding(linfo.convex_padding[0],
+                      linfo.convex_padding[1],
+                      linfo.convex_padding[2]);
+                }
+                else
+                {
+                  // fallback to uniform scale/padding
+                  mesh_body->setScale(linfo.scale, linfo.scale, linfo.scale);
+                  mesh_body->setPadding(linfo.padding, linfo.padding, linfo.padding);
+                }
+              }
               break;
             }
             default:

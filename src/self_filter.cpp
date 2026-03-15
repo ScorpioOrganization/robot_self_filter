@@ -329,7 +329,12 @@ namespace robot_self_filter
           if (mesh_body)
           {
             mk.type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
-            mk.scale.x = mk.scale.y = mk.scale.z = 1.0f;
+
+            // Get the scale from the mesh body
+            tf2::Vector3 mesh_scale = mesh_body->getScale();
+            mk.scale.x = static_cast<float>(mesh_scale.x());
+            mk.scale.y = static_cast<float>(mesh_scale.y());
+            mk.scale.z = static_cast<float>(mesh_scale.z());
 
             const auto &verts = mesh_body->getScaledVertices();
             const auto &tris = mesh_body->getTriangles();
