@@ -108,7 +108,7 @@ namespace robot_self_filter
               out_topic_, output_qos);
 
       marker_pub_ =
-          this->create_publisher<visualization_msgs::msg::MarkerArray>("collision_shapes", 1);
+          this->create_publisher<visualization_msgs::msg::MarkerArray>("~/collision_shapes", 1);
     }
 
     rclcpp::QoS createQoSProfile(const std::string& reliability, const std::string& durability, int queue_size)

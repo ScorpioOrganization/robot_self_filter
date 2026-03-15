@@ -1,7 +1,7 @@
 # ============================ filter_improved.yaml ============================
 livox_mid360_pointcloud_filter:
   ros__parameters:
-    sensor_frame: "lidar_link"
+    sensor_frame: "" # if empty, the filter will remove points that are contained in collision meshes, if link is specified, the intersection will be calculated in the sensor frame - so points will be removed if they are inside or behind the collision mesh from the sensor's perspective
 
     # Pointcloud input topic configuration
     in_pointcloud_topic: "/fast_lio/cloud_registered_body"
@@ -59,6 +59,11 @@ livox_mid360_pointcloud_filter:
         "mast_left_link",
         "mast_right_link",
         ]
+
+      # Example custom overrides:
+      # base_link:
+      #   box_scale: [1.5, 1.5, 1.0]
+      #   box_padding: [0.05, 0.05, 0.05]
 
       # Example custom overrides:
       # TELE:

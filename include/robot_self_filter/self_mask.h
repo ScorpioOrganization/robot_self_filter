@@ -216,7 +216,6 @@ public:
 
   void assumeFrame(const std_msgs::msg::Header &header)
   {
-    rclcpp::Time transform_time(header.stamp.sec, header.stamp.nanosec, node_->get_clock()->get_clock_type());
     for (auto &sl : bodies_)
     {
       try
@@ -268,15 +267,13 @@ public:
                    const double min_sensor_dist)
   {
     assumeFrame(header);
-    rclcpp::Time transform_time(header.stamp.sec, header.stamp.nanosec, node_->get_clock()->get_clock_type());
 
     if (!sensor_frame.empty())
     {
       try
       {
         auto transform_stamped = tf_buffer_.lookupTransform(
-          header.frame_id, sensor_frame,
-          transform_time, rclcpp::Duration(std::chrono::milliseconds(1000)));
+          header.frame_id, sensor_frame, tf2::TimePointZero);
         tf2::Vector3 t(
             transform_stamped.transform.translation.x,
             transform_stamped.transform.translation.y,
