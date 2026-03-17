@@ -1,0 +1,111 @@
+# ============================ filter_improved.yaml ============================
+livox_mid360_pointcloud_filter:
+  ros__parameters:
+    sensor_frame: "" # empty string = removal of points inside the colliders, link specified = removal of points inside the colliders and behind them (from sensor perspective)
+
+    # Pointcloud input topic configuration
+    in_pointcloud_topic: "/fast_lio/cloud_registered_body"
+    input_qos_reliability: "reliable"      # "best_effort" or "reliable"
+    input_qos_durability: "volatile"       # "volatile" or "transient_local"
+    input_qos_queue_size: 1                # Queue size for input topic
+
+    # Pointcloud output topic configuration
+    out_pointcloud_topic: "/fast_lio/cloud_registered_body_filtered"
+    output_qos_reliability: "reliable"     # "best_effort" or "reliable"
+    output_qos_durability: "volatile"      # "volatile" or "transient_local"
+    output_qos_queue_size: 1               # Queue size for output topic
+
+    # Sensor configuration
+    lidar_sensor_type: 0  # 0=XYZ, 1=XYZRGB, 2=Ouster, 3=Hesai, 4=Robosense, 5=Pandar
+
+    # For spheres (single scale & padding)
+    default_sphere_scale: 1.0
+    default_sphere_padding: 0.01
+
+    # For boxes (x,y,z scale & padding)
+    default_box_scale: [1.0, 1.0, 1.0]
+    default_box_padding: [0.01, 0.01, 0.01]
+
+    # For cylinders (radial scale, vertical scale, radial padding, vertical padding)
+    default_cylinder_scale: [1.0, 1.0]
+    default_cylinder_padding: [0.01, 0.01]
+
+    # For convex meshes (x,y,z scale & padding)
+    default_convex_scale: [1.0, 1.0, 1.0]
+    default_convex_padding: [0.00, 0.00, 0.00]
+
+    # Filtering behavior
+    keep_organized: false
+    zero_for_removed_points: false
+    invert: false
+    min_sensor_dist: 0.1
+
+    # Link definitions
+    self_see_links:
+      names: [
+        "base_link",
+        "wheel_LF_link",
+        "wheel_LR_link",
+        "wheel_RF_link",
+        "wheel_RR_link",
+        "wahacz_L_link",
+        "wahacz_R_link",
+        "mani_base_link",
+        "shoulder_link",
+        "elbow_link",
+        "wrist1_link",
+        "basiakowa_link",
+        "wrist2_link",
+        "gripper_encoder_link",
+        "gripper_encoder_mirror_link",
+        "gripper_finger_link",
+        "gripper_finger_mirror_link",
+        "mast_left_link",
+        "mast_right_link",
+        ]
+
+      mani_base_link:
+        convex_scale: [1.0, 1.0, 1.0]
+        convex_padding: [0.00, 0.00, 0.00]
+
+      # Example custom overrides:
+      # base_link:
+      #   box_scale: [1.5, 1.5, 1.0]
+      #   box_padding: [0.05, 0.05, 0.05]
+
+      # Example convex mesh override:
+      # gripper_finger_link:
+      #   convex_scale: [1.1, 1.1, 1.2]
+      #   convex_padding: [0.02, 0.02, 0.03]
+
+      # Example custom overrides:
+      # TELE:
+      #   # If TELE is a box, define 3 scale factors and 3 paddings
+      #   box_scale: [1.0, 1.0, 1.0]
+      #   box_padding: [0.05, 0.05, 0.05]
+
+      # STICK:
+      #   box_scale: [1.1, 1.1, 1.7]
+      #   box_padding: [0.05, 0.22, 0.05]
+
+      # BOOM:
+      #   # If BOOM is a box, define 3 scale factors and 3 paddings
+      #   box_scale: [1.0, 1.0, 1.3]
+      #   box_padding: [0.05, 0.1, 0.22]
+
+      # LF_WHEEL:
+      #   # If wheels are cylinders: radial scale, vertical scale, radial padding, vertical padding
+      #   cylinder_scale: [1.0, 1.0]
+      #   cylinder_padding: [0.05, 0.3]
+
+      # LH_WHEEL:
+      #   cylinder_scale: [1.0, 1.0]
+      #   cylinder_padding: [0.05, 0.3]
+
+      # RF_WHEEL:
+      #   cylinder_scale: [1.0, 1.0]
+      #   cylinder_padding: [0.05, 0.3]
+
+      # RH_WHEEL:
+      #   cylinder_scale: [1.0, 1.0]
+      #   cylinder_padding: [0.05, 0.3]

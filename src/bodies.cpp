@@ -596,14 +596,33 @@ void ConvexMesh::updateInternalData()
   // Could apply uniform scale/padding if desired, left as-is for example
   m_iPose   = m_pose.inverse();
   m_center  = m_pose * m_meshCenter;
-  m_radiusB = m_meshRadiusB; 
+  m_radiusB = m_meshRadiusB;
   m_radiusBSqr = m_radiusB * m_radiusB;
 
   m_scaledVertices.resize(m_vertices.size());
   for (size_t i=0; i<m_vertices.size(); i++)
   {
-    // Uniform scaling placeholder
-    m_scaledVertices[i] = m_vertices[i];
+    // Apply scale and padding
+    tf2::Vector3 scaled_vert;
+    scaled_vert.setX(m_vertices[i].x() * m_scale.x());
+    scaled_vert.setY(m_vertices[i].y() * m_scale.y());
+    scaled_vert.setZ(m_vertices[i].z() * m_scale.z());
+
+    // Apply padding by moving vertices away from mesh center
+    tf2::Vector3 direction = scaled_vert - m_meshCenter;
+    double dist = direction.length();
+    if (dist > 1e-9) {
+      direction.normalize();
+      // Add padding in the direction away from center
+      tf2::Vector3 padding_vec(
+        direction.x() * m_padding.x(),
+        direction.y() * m_padding.y(),
+        direction.z() * m_padding.z()
+      );
+      scaled_vert += padding_vec;
+    }
+
+    m_scaledVertices[i] = scaled_vert;
   }
 }
 bool ConvexMesh::isPointInsidePlanes(const tf2::Vector3 &point) const

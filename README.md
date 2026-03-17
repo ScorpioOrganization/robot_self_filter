@@ -121,7 +121,7 @@ The filter automatically determines shape types from the robot's URDF collision 
 ### Tuning Guidelines
 
 1. **Start with default values**: Use scale=1.0 and small padding (0.01-0.05)
-2. **Visualize collision shapes**: Check `/collision_shapes` topic in RViz
+2. **Visualize collision shapes**: Check `~/collision_shapes` topic in RViz
 3. **Adjust per-link parameters**: Fine-tune problematic links individually
 4. **Consider sensor noise**: Increase padding for noisy sensors
 5. **Monitor performance**: Larger padding values may filter valid points
@@ -138,14 +138,14 @@ The filter automatically determines shape types from the robot's URDF collision 
 ### Published Topics
 
 - `<out_pointcloud_topic>` (sensor_msgs/PointCloud2): Filtered point cloud
-- `/collision_shapes` (visualization_msgs/MarkerArray): Visualization of filter shapes
+- `~/collision_shapes` (visualization_msgs/MarkerArray): Visualization of filter shapes
 
 ## Visualization
 
 To visualize the collision shapes in RViz:
 
 1. Add a MarkerArray display
-2. Set topic to `/collision_shapes`
+2. Set topic to `/<node_name>/collision_shapes`
 3. Collision shapes will appear as semi-transparent geometries
 
 ## Sensor Types

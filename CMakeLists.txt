@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-cmake_policy(VERSION 3.28)
+cmake_policy(VERSION 3.22)
 
 project(robot_self_filter)
 

@@ -51,24 +51,48 @@ namespace robot_self_filter
       this->declare_parameter<std::string>("sensor_frame", "Lidar"); // Default value
       // this->set_parameter(rclcpp::Parameter("sensor_frame", "Lidar")); // Removed explicit set
       this->declare_parameter<bool>("use_rgb", false);
-      this->declare_parameter<int>("max_queue_size", 10);
       this->declare_parameter<int>("lidar_sensor_type", 0);
       this->declare_parameter<std::string>("robot_description", "");
       this->declare_parameter<std::string>("in_pointcloud_topic", "/cloud_in");
+      this->declare_parameter<std::string>("out_pointcloud_topic", "/cloud_out");
+
+      // QoS parameters for input topic
+      this->declare_parameter<std::string>("input_qos_reliability", "best_effort");
+      this->declare_parameter<std::string>("input_qos_durability", "volatile");
+      this->declare_parameter<int>("input_qos_queue_size", 10);
+
+      // QoS parameters for output topic
+      this->declare_parameter<std::string>("output_qos_reliability", "best_effort");
+      this->declare_parameter<std::string>("output_qos_durability", "volatile");
+      this->declare_parameter<int>("output_qos_queue_size", 10);
 
       sensor_frame_ = this->get_parameter("sensor_frame").as_string();
       use_rgb_ = this->get_parameter("use_rgb").as_bool();
-      max_queue_size_ = this->get_parameter("max_queue_size").as_int();
       int temp_sensor_type = this->get_parameter("lidar_sensor_type").as_int();
       sensor_type_ = static_cast<SensorType>(temp_sensor_type);
       in_topic_ = this->get_parameter("in_pointcloud_topic").as_string();
+      out_topic_ = this->get_parameter("out_pointcloud_topic").as_string();
+
+      // Get QoS parameters
+      input_qos_reliability_ = this->get_parameter("input_qos_reliability").as_string();
+      input_qos_durability_ = this->get_parameter("input_qos_durability").as_string();
+      input_qos_queue_size_ = this->get_parameter("input_qos_queue_size").as_int();
+      output_qos_reliability_ = this->get_parameter("output_qos_reliability").as_string();
+      output_qos_durability_ = this->get_parameter("output_qos_durability").as_string();
+      output_qos_queue_size_ = this->get_parameter("output_qos_queue_size").as_int();
 
       RCLCPP_INFO(this->get_logger(), "Parameters:");
       RCLCPP_INFO(this->get_logger(), "  sensor_frame: %s", sensor_frame_.c_str());
       RCLCPP_INFO(this->get_logger(), "  use_rgb: %s", use_rgb_ ? "true" : "false");
-      RCLCPP_INFO(this->get_logger(), "  max_queue_size: %d", max_queue_size_);
       RCLCPP_INFO(this->get_logger(), "  lidar_sensor_type: %d", temp_sensor_type);
       RCLCPP_INFO(this->get_logger(), "  in_pointcloud_topic: %s", in_topic_.c_str());
+      RCLCPP_INFO(this->get_logger(), "  out_pointcloud_topic: %s", out_topic_.c_str());
+      RCLCPP_INFO(this->get_logger(), "  input_qos_reliability: %s", input_qos_reliability_.c_str());
+      RCLCPP_INFO(this->get_logger(), "  input_qos_durability: %s", input_qos_durability_.c_str());
+      RCLCPP_INFO(this->get_logger(), "  input_qos_queue_size: %d", input_qos_queue_size_);
+      RCLCPP_INFO(this->get_logger(), "  output_qos_reliability: %s", output_qos_reliability_.c_str());
+      RCLCPP_INFO(this->get_logger(), "  output_qos_durability: %s", output_qos_durability_.c_str());
+      RCLCPP_INFO(this->get_logger(), "  output_qos_queue_size: %d", output_qos_queue_size_);
 
       tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
       tf_buffer_->setCreateTimerInterface(
@@ -77,18 +101,53 @@ namespace robot_self_filter
               this->get_node_timers_interface()));
       tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-      // Publish filtered cloud as sensor data QoS (BEST_EFFORT) for high-rate streams
+      // Publish filtered cloud with configured QoS
+      rclcpp::QoS output_qos = createQoSProfile(output_qos_reliability_, output_qos_durability_, output_qos_queue_size_);
       pointCloudPublisher_ =
           this->create_publisher<sensor_msgs::msg::PointCloud2>(
-              "cloud_out", rclcpp::SensorDataQoS());
+              out_topic_, output_qos);
 
       marker_pub_ =
-          this->create_publisher<visualization_msgs::msg::MarkerArray>("collision_shapes", 1);
+          this->create_publisher<visualization_msgs::msg::MarkerArray>("~/collision_shapes", 1);
+    }
+
+    rclcpp::QoS createQoSProfile(const std::string& reliability, const std::string& durability, int queue_size)
+    {
+      rclcpp::QoS qos(queue_size);
+
+      // Set reliability
+      if (reliability == "reliable") {
+        qos.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+      }
+      else if (reliability == "best_effort") {
+        qos.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+      }
+      else {
+        RCLCPP_WARN(this->get_logger(), "Unknown reliability '%s', using best_effort", reliability.c_str());
+        qos.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+      }
+
+      // Set durability
+      if (durability == "transient_local") {
+        qos.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
+      }
+      else if (durability == "volatile") {
+        qos.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+      }
+      else {
+        RCLCPP_WARN(this->get_logger(), "Unknown durability '%s', using volatile", durability.c_str());
+        qos.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+      }
+
+      return qos;
     }
 
     void initSelfFilter()
     {
       std::string robot_description_xml = this->get_parameter("robot_description").as_string();
+
+      RCLCPP_INFO(this->get_logger(), "Initializing self filter...");
+      RCLCPP_INFO(this->get_logger(), "Processing robot description and creating collision bodies...");
 
       switch (sensor_type_)
       {
@@ -115,25 +174,33 @@ namespace robot_self_filter
         break;
       }
 
+      RCLCPP_INFO(this->get_logger(), "Self filter created successfully");
+      RCLCPP_INFO(this->get_logger(), "Retrieving link names from self filter...");
+
       self_filter_->getLinkNames(frames_);
 
-      // Subscribe to input cloud with sensor data QoS (BEST_EFFORT)
-      rclcpp::QoS input_qos = rclcpp::SensorDataQoS();
+      RCLCPP_INFO(this->get_logger(), "Found %zu links to filter:", frames_.size());
+      for (size_t i = 0; i < frames_.size(); ++i)
+      {
+        RCLCPP_INFO(this->get_logger(), "  [%zu/%zu] %s", i + 1, frames_.size(), frames_[i].c_str());
+      }
+
+      RCLCPP_INFO(this->get_logger(), "Self filter initialization complete!");
+      RCLCPP_INFO(this->get_logger(), "Subscribing to input topic: %s", in_topic_.c_str());
+
+      // Subscribe to input cloud with configured QoS
+      rclcpp::QoS input_qos = createQoSProfile(input_qos_reliability_, input_qos_durability_, input_qos_queue_size_);
       sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
           in_topic_,
           input_qos,
           std::bind(&SelfFilterNode::cloudCallback, this, std::placeholders::_1));
+
+      RCLCPP_INFO(this->get_logger(), "Node is ready and listening for point clouds!");
     }
 
   private:
     void cloudCallback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &cloud)
     {
-      RCLCPP_INFO(this->get_logger(), "Received cloud message with timestamp %.6f",
-                  rclcpp::Time(cloud->header.stamp).seconds());
-
-      RCLCPP_INFO(this->get_logger(), "Point cloud size: width = %d, height = %d, total points = %d",
-                  cloud->width, cloud->height, cloud->width * cloud->height);
-
       sensor_msgs::msg::PointCloud2 out2;
       int input_size = 0;
       int output_size = 0;
@@ -262,7 +329,12 @@ namespace robot_self_filter
           if (mesh_body)
           {
             mk.type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
-            mk.scale.x = mk.scale.y = mk.scale.z = 1.0f;
+
+            // Get the scale from the mesh body
+            tf2::Vector3 mesh_scale = mesh_body->getScale();
+            mk.scale.x = static_cast<float>(mesh_scale.x());
+            mk.scale.y = static_cast<float>(mesh_scale.y());
+            mk.scale.z = static_cast<float>(mesh_scale.z());
 
             const auto &verts = mesh_body->getScaledVertices();
             const auto &tris = mesh_body->getTriangles();
@@ -285,7 +357,6 @@ namespace robot_self_filter
       }
 
       marker_pub_->publish(marker_array);
-      RCLCPP_INFO(this->get_logger(), "Published %zu collision shapes", marker_array.markers.size());
     }
 
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -299,9 +370,15 @@ namespace robot_self_filter
     std::string sensor_frame_;
     bool use_rgb_;
     SensorType sensor_type_;
-    int max_queue_size_;
     std::vector<std::string> frames_;
     std::string in_topic_;
+    std::string out_topic_;
+    std::string input_qos_reliability_;
+    std::string input_qos_durability_;
+    int input_qos_queue_size_;
+    std::string output_qos_reliability_;
+    std::string output_qos_durability_;
+    int output_qos_queue_size_;
   };
 
 } // namespace robot_self_filter
